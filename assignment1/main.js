@@ -19,7 +19,8 @@ const camera = new THREE.PerspectiveCamera(
   0.1,
   1000
 );
-camera.position.set(2, 18, 26);
+camera.position.set(-24, 15, -4); // more diagonal, elevated view
+camera.lookAt(11.5, 5, 9);
 
 // === Controls ===
 const controls = new OrbitControls(camera, renderer.domElement);
@@ -29,6 +30,7 @@ controls.dampingFactor = 0.08;
 // === Lights ===
 // soft ambient light
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.35);
+
 scene.add(ambientLight);
 
 // main sunlight with shadows
@@ -50,6 +52,8 @@ scene.add(hemiLight);
 const plazaLight = new THREE.PointLight(0xfff7d8, 0.6, 20);
 plazaLight.position.set(0, 6, 0);
 scene.add(plazaLight);
+
+
 
 // === Ground ===
 const grassMat = new THREE.MeshLambertMaterial({ color: 0x5aa151 });
@@ -101,11 +105,6 @@ createPath(0, -8.5, 1.8, 12);
 createPath(8.5, 0, 1.8, 12, Math.PI / 2);
 createPath(-8.5, 0, 1.8, 12, Math.PI / 2);
 
-// diagonal paths
-createPath(4.5, 4.5, 1.6, 8, -Math.PI / 4);
-createPath(-4.5, 4.5, 1.6, 8, Math.PI / 4);
-createPath(4.5, -4.5, 1.6, 8, Math.PI / 4);
-createPath(-4.5, -4.5, 1.6, 8, -Math.PI / 4);
 
 // short path to plaza
 createPath(0, 3.5, 1.6, 5);
@@ -153,32 +152,50 @@ createBottomRight();
 // striped building on top-right
 function createStripedBuilding(x, z) {
   const stripeColors = [0xff8a33, 0x9cdcf7, 0x6aa0ff];
-  const stripeWidth = 1.8;
-  const buildingWidth = 9;
+  const stripeWidth = 2.8;
+  const buildingWidth = 9;  // X dimension
   const stripesCount = Math.floor(buildingWidth / stripeWidth);
-  const height = 8;
-  const depth = 4.2;
+  const height = 8;         // Y dimension
+  const depth = 8;          // Z dimension — now cube-like
   const startX = x - buildingWidth / 2 + stripeWidth / 2;
 
   const group = new THREE.Group();
+
+  // === Stripes ===
   for (let i = 0; i < stripesCount; i++) {
     const color = stripeColors[i % stripeColors.length];
-    const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.5, metalness: 0.05 });
-    const stripe = new THREE.Mesh(new THREE.BoxGeometry(stripeWidth, height, depth), mat);
+    const mat = new THREE.MeshStandardMaterial({
+      color,
+      roughness: 0.5,
+      metalness: 0.05
+    });
+
+    const stripe = new THREE.Mesh(
+      new THREE.BoxGeometry(stripeWidth, height, depth),
+      mat
+    );
+
     stripe.position.set(startX + i * stripeWidth, height / 2, z);
     stripe.castShadow = stripe.receiveShadow = true;
     group.add(stripe);
   }
 
-  const roof = new THREE.Mesh(new THREE.BoxGeometry(buildingWidth + 0.1, 0.10, depth + 0.1),
-    new THREE.MeshStandardMaterial({ color: 0x333333, roughness: 0.9 }));
-  roof.position.set(x, height + 0.075, z);
+  // === Roof  ===
+  const roof = new THREE.Mesh(
+    new THREE.BoxGeometry(buildingWidth, 0.2, depth),
+    new THREE.MeshStandardMaterial({ color: 0x333333, roughness: 0.3 })
+  );
+  roof.position.set(x - 0.3, height, z);
+  roof.castShadow = roof.receiveShadow = true;
   group.add(roof);
 
   group.position.y = 0;
+  // group.rotation.y = Math.PI; // rotate 90 degrees around Y-axis
+
   scene.add(group);
 }
-createStripedBuilding(10, 7);
+
+createStripedBuilding(11.5, 9);
 
 // extra small building bottom-left
 function createExtraBuilding() {
@@ -191,6 +208,8 @@ function createExtraBuilding() {
     new THREE.MeshStandardMaterial({ color: 0x7b5e57, roughness: 0.7 }));
   balcony.position.set(-8, 2.1, -5.6);
   finalize(balcony);
+
+  
 }
 createExtraBuilding();
 
@@ -228,12 +247,6 @@ function createBench(x, z, rot = 0) {
   scene.add(seat, leg1, leg2);
 }
 
-// benches around paths
-createBench(-3, 4, Math.PI / 6);
-createBench(3, -4, -Math.PI / 6);
-createBench(1.9, 5, 0.3);
-createBench(-3, -4, Math.PI / 6);
-
 
 //benches
 createBench(2.9, 10, 0.3);
@@ -258,6 +271,7 @@ function createLamp(x, z) {
   head.position.set(x, 2.65, z);
 
   const point = new THREE.PointLight(0xfff2cc, 0.8, 8);
+  
   point.position.set(x, 2.6, z);
 
   scene.add(pole, head, point);
@@ -272,6 +286,103 @@ createLamp(-10, -2);
 createLamp(10, -2);
 createLamp(5, -12);
 createLamp(-5, -12);
+
+// === Day/Night Toggle ===
+
+// collect all lamp PointLights
+const lampLights = [];
+scene.traverse((obj) => {
+  if (obj.isPointLight && obj !== plazaLight) {
+    lampLights.push(obj);
+    obj.intensity = 0; // start with lamps off
+  }
+});
+
+let isDay = true;
+
+function toggleDayNight() {
+  isDay = !isDay;
+
+  if (isDay) {
+    // Day mode
+    scene.background.set(0xbfd1e5); // light blue sky
+    ambientLight.intensity = 0.35;
+    dirLight.intensity = 0.8;
+    hemiLight.intensity = 0.4;
+    plazaLight.intensity = 0.6;
+    lampLights.forEach(l => l.intensity = 0); // lamps off
+  } else {
+    // Night mode
+    scene.background.set(0x0d0d2b); // dark night sky
+    ambientLight.intensity = 0.1;
+    dirLight.intensity = 0.1;
+    hemiLight.intensity = 0.1;
+    plazaLight.intensity = 0.1; // subtle plaza light
+    lampLights.forEach(l => l.intensity = 0.8); // lamps on
+  }
+}
+
+// Listen for "N" key
+window.addEventListener('keydown', (event) => {
+  if (event.key.toLowerCase() === 'n') toggleDayNight();
+});
+
+
+document.getElementById('toggleDayNight').addEventListener('click', toggleDayNight);
+
+
+const speed = 0.2; // movement speed
+const move = { forward: false, backward: false, left: false, right: false };
+
+document.addEventListener('keydown', (e) => {
+    if (e.key.toLowerCase() === 'w') move.forward = true;
+    if (e.key.toLowerCase() === 's') move.backward = true;
+    if (e.key.toLowerCase() === 'a') move.left = true;
+    if (e.key.toLowerCase() === 'd') move.right = true;
+});
+
+document.addEventListener('keyup', (e) => {
+    if (e.key.toLowerCase() === 'w') move.forward = false;
+    if (e.key.toLowerCase() === 's') move.backward = false;
+    if (e.key.toLowerCase() === 'a') move.left = false;
+    if (e.key.toLowerCase() === 'd') move.right = false;
+});
+
+function updateCamera() {
+    const direction = new THREE.Vector3();
+    camera.getWorldDirection(direction);
+    direction.y = 0; // ignore vertical for flat movement
+    direction.normalize();
+
+    const right = new THREE.Vector3();
+    right.crossVectors(camera.up, direction).normalize();
+
+    if (move.forward) camera.position.add(direction.clone().multiplyScalar(speed));
+    if (move.backward) camera.position.add(direction.clone().multiplyScalar(-speed));
+    if (move.left) camera.position.add(right.clone().multiplyScalar(speed));
+    if (move.right) camera.position.add(right.clone().multiplyScalar(-speed));
+}
+
+
+
+// Map buttons to movement
+const btnMap = {
+  up: 'forward',
+  down: 'backward',
+  left: 'left',
+  right: 'right'
+};
+
+Object.keys(btnMap).forEach(id => {
+  const btn = document.getElementById(id);
+  btn.addEventListener('mousedown', () => move[btnMap[id]] = true);
+  btn.addEventListener('mouseup', () => move[btnMap[id]] = false);
+  btn.addEventListener('mouseleave', () => move[btnMap[id]] = false);
+  // For mobile touch
+  btn.addEventListener('touchstart', (e) => { e.preventDefault(); move[btnMap[id]] = true; });
+  btn.addEventListener('touchend', (e) => { e.preventDefault(); move[btnMap[id]] = false; });
+});
+
 
 // === Trees ===
 function createTree(x, z, scale = 1) {
@@ -294,19 +405,36 @@ function createTree(x, z, scale = 1) {
   scene.add(trunk, cone1, cone2, cone3);
 }
 
-// trees around area
+// trees around area (surrounding the outer edges of the campus)
 const treePositions = [
-  [ -14, 14 ], [ -10, 15 ], [ -5, 16 ], [ 0, 16 ], [ 5, 15 ], [ 10, 14 ],
-  [ 14, 10 ], [ 14, 4 ], [ 13, -2 ], [ 12, -8 ], [ 8, -12 ], [ 2, -14 ],
-  [ -4, -13 ], [ -10, -12 ], [ -14, -8 ], [ -15, -2 ], [ -15, 6 ]
+  [ -14, 14 ], // far top-left corner
+  [ -10, 15 ], // top-left side, slightly closer to center
+  [ -5, 16 ],  // top edge, slightly left
+  [ 0, 16 ],   // top center (directly north of plaza)
+  [ 5, 15 ],   // top-right area
+  [ 10, 14 ],  // far top-right corner
+
+  [ 14, 2.5 ],   // right edge, mid-upper section
+  [ 13, -2 ],  // right-middle side
+  [ 8, -12 ],  // lower-right corner
+  [ 2, -14 ],  // bottom center-right
+
+  [ -4, -13 ], // bottom center-left
+  [ -10, -12 ],// lower-left side
+  [ -14, -8 ], // left-lower area
+  [ -15, -2 ], // left-middle side
+  [ -15, 6 ]   // left-upper side
 ];
+
+// create each tree at those positions
 for (const [x, z] of treePositions) createTree(x, z, 1);
 
+
 // small trees near plaza
-createTree(3, 2.5, 0.8);
-createTree(-3, 2.5, 0.8);
-createTree(2.2, -2.5, 0.9);
-createTree(-3, -2.5, 0.9);
+createTree(3.5, 6.0, 1.8);
+createTree(-5, 5.5, 1.8);
+createTree(5.2, -4.5, 1.9);
+createTree(-5, -2.5, 1.9);
 
 // === Flowers ===
 function scatterFlowers(centerX, centerZ, radius, count = 45) {
@@ -326,6 +454,43 @@ function scatterFlowers(centerX, centerZ, radius, count = 45) {
   }
 }
 scatterFlowers(0, 0, 2.4, 60);
+
+// === Add flat roofs to all other buildings ===
+function addBuildingRoofs() {
+  const roofMat = new THREE.MeshStandardMaterial({ color: 0x333333, roughness: 0.3 });
+
+  // --- Roof for Top-Left White Building ---
+  const topLeftRoof = new THREE.Mesh(
+    new THREE.BoxGeometry(6, 0.2, 4),
+    roofMat
+  );
+  topLeftRoof.position.set(-10, 7, 9); // same top Y + roof thickness
+  topLeftRoof.castShadow = topLeftRoof.receiveShadow = true;
+  scene.add(topLeftRoof);
+
+  // --- Roof for Bottom-Right Gray Building ---
+  const bottomRightRoof = new THREE.Mesh(
+    new THREE.BoxGeometry(5.5, 0.2, 4.2),
+    roofMat
+  );
+  bottomRightRoof.position.set(10, 6.5, -6);
+  bottomRightRoof.castShadow = bottomRightRoof.receiveShadow = true;
+  scene.add(bottomRightRoof);
+
+  // --- Roof for Bottom-Left Purple Building ---
+  const extraRoof = new THREE.Mesh(
+    new THREE.BoxGeometry(4.5, 0.2, 3.5),
+    roofMat
+  );
+  extraRoof.position.set(-8, 5.5, -7);
+  extraRoof.castShadow = extraRoof.receiveShadow = true;
+  scene.add(extraRoof);
+}
+
+addBuildingRoofs();
+
+
+
 
 // === Small ground details ===
 function smallStone(x, z) {
@@ -349,6 +514,8 @@ window.addEventListener('resize', () => {
 function animate() {
   requestAnimationFrame(animate);
   controls.update();
+  
+    updateCamera();
   renderer.render(scene, camera);
 }
 animate();
