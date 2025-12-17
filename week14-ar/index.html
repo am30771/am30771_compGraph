@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>My Galaxy</title>
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+  </head>
+
+  <body>
+    <a-scene
+      renderer="antialias: true"
+      vr-mode-ui="enabled: false"
+      background="color: #02030f">
+
+      <!-- Camera (slight drift for life) -->
+      <a-entity
+        camera
+        look-controls
+        position="0 1.6 0"
+        animation="property: position; to: 0 1.65 0; dir: alternate; loop: true; dur: 6000">
+      </a-entity>
+
+      <!-- GALAXY CONTAINER -->
+      <a-entity position="0 1.6 -3">
+
+        <!-- Galactic Core -->
+        <a-sphere
+          radius="0.35"
+          color="#9b5cff"
+          material="emissive: #7f4cff; emissiveIntensity: 1; opacity: 0.95"
+          animation="property: scale; to: 1.15 1.15 1.15; dir: alternate; loop: true; dur: 2200"
+          animation__spin="property: rotation; to: 0 360 0; loop: true; dur: 16000">
+        </a-sphere>
+
+        <!-- Spiral Arms (illusion using rings) -->
+        <a-ring
+          radius-inner="0.6"
+          radius-outer="0.65"
+          rotation="90 0 0"
+          color="#6f7bff"
+          material="opacity: 0.25"
+          animation="property: rotation; to: 90 360 0; loop: true; dur: 20000">
+        </a-ring>
+
+        <a-ring
+          radius-inner="1"
+          radius-outer="1.05"
+          rotation="90 45 0"
+          color="#ff6ad5"
+          material="opacity: 0.2"
+          animation="property: rotation; to: 90 -360 0; loop: true; dur: 28000">
+        </a-ring>
+
+        <!-- ORBIT SYSTEM -->
+        <a-entity
+          animation="property: rotation; to: 0 360 0; loop: true; dur: 14000">
+
+          <!-- Planet 1 -->
+          <a-sphere
+            position="1 0 0"
+            radius="0.15"
+            color="#4cc3d9"
+            animation="property: rotation; to: 0 360 0; loop: true; dur: 4000">
+          </a-sphere>
+
+          <!-- Planet 2 -->
+          <a-sphere
+            position="-1.4 0 0"
+            radius="0.2"
+            color="#ffb347">
+          </a-sphere>
+
+          <!-- Planet 3 -->
+          <a-sphere
+            position="0 0 1.8"
+            radius="0.12"
+            color="#ff6ad5">
+          </a-sphere>
+
+        </a-entity>
+
+      </a-entity>
+
+      <!-- STAR FIELD -->
+      <a-entity>
+        <a-sphere position="2 3 -5" radius="0.03" color="#ffffff"
+          animation="property: scale; to: 1.4 1.4 1.4; dir: alternate; loop: true; dur: 3000"></a-sphere>
+
+        <a-sphere position="-3 2 -6" radius="0.02" color="#ffffff"></a-sphere>
+        <a-sphere position="1 -1 -4" radius="0.025" color="#ffffff"></a-sphere>
+        <a-sphere position="-2 -2 -7" radius="0.03" color="#ffffff"></a-sphere>
+        <a-sphere position="0 4 -8" radius="0.02" color="#ffffff"></a-sphere>
+      </a-entity>
+
+      <!-- LIGHTING -->
+      <a-light type="ambient" color="#7f7cff" intensity="0.9"></a-light>
+      <a-light type="point" position="0 3 -2" intensity="1.6" color="#ffffff"></a-light>
+
+      <!-- SPACE SKY -->
+      <a-sky color="#02030f"></a-sky>
+
+    </a-scene>
+  </body>
+</html>
